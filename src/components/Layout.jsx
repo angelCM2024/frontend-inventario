@@ -1,17 +1,11 @@
-import { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Layout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  // Estado para controlar si el menú móvil está abierto
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    localStorage.removeItem('auth_token'); // Borramos la sesión
-    navigate('/login');
-  };
-
+  // Array de navegación con iconos SVG incorporados
   const navItems = [
     { 
       path: '/', 
@@ -36,19 +30,11 @@ const Layout = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
+    <div className="flex h-screen bg-slate-50 font-sans">
       
-      {/* Fondo oscuro semi-transparente para móvil */}
-      {isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden transition-opacity"
-          onClick={() => setIsMobileMenuOpen(false)}
-        ></div>
-      )}
-
-      {/* Sidebar (Oculto en móvil por defecto, visible en escritorio) */}
-      <aside className={`fixed md:static inset-y-0 left-0 w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-30 transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-        <div className="h-16 flex items-center px-6 bg-slate-950 border-b border-slate-800 justify-between">
+      {/* Sidebar Mejorado */}
+      <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl z-10">
+        <div className="h-16 flex items-center px-6 bg-slate-950 border-b border-slate-800">
           <span className="text-xl font-bold text-white flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,9 +43,6 @@ const Layout = () => {
             </div>
             InventarioWeb
           </span>
-          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-white">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
         </div>
         
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
@@ -69,9 +52,10 @@ const Layout = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                onClick={() => setIsMobileMenuOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                  isActive ? 'bg-blue-600 text-white font-medium shadow-md' : 'hover:bg-slate-800 hover:text-white'
+                  isActive 
+                    ? 'bg-blue-600 text-white font-medium shadow-md' 
+                    : 'hover:bg-slate-800 hover:text-white'
                 }`}
               >
                 <svg className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,13 +70,16 @@ const Layout = () => {
         {/* Perfil Falso / Logout en la base del Sidebar */}
         <div className="p-4 border-t border-slate-800 bg-slate-900">
           <div className="flex items-center gap-3 mb-4 px-2">
-            <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold text-sm">AD</div>
+            <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold text-sm">
+              AD
+            </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">Administrador</p>
+              <p className="text-xs text-slate-400 truncate">admin@universidad.edu</p>
             </div>
           </div>
           <button 
-            onClick={handleLogout}
+            onClick={() => navigate('/login')}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,26 +92,21 @@ const Layout = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        
         {/* Header Superior Limpio */}
-        <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-8 z-10 shadow-sm">
+        <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-8 z-0 shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-800">
+            {navItems.find(i => i.path === location.pathname)?.label || 'Panel de Control'}
+          </h2>
           <div className="flex items-center gap-4">
-            {/* Botón de Hamburguesa para móvil */}
-            <button 
-              className="md:hidden text-slate-600 hover:text-slate-900 focus:outline-none"
-              onClick={() => setIsMobileMenuOpen(true)}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <h2 className="text-lg sm:text-xl font-semibold text-slate-800 truncate">
-              {navItems.find(i => i.path === location.pathname)?.label || 'Panel de Control'}
-            </h2>
+            <span className="text-sm text-slate-500">
+              {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </span>
           </div>
         </header>
 
         {/* Renderizado de Páginas */}
-        <div className="flex-1 overflow-auto p-4 sm:p-8 bg-slate-50">
+        <div className="flex-1 overflow-auto p-8 bg-slate-50">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>

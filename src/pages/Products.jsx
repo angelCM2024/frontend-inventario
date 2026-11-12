@@ -1,118 +1,135 @@
 import { useState, useEffect } from 'react';
-import ProductModal from '../components/ProductModal'; 
+import { getProducts, deleteProduct } from '../services/productService';
+import ProductModal from '../components/ProductModal';
 
-const Products = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+export default function Products() {
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Estados del Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [productToEdit, setProductToEdit] = useState(null);
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const data = await getProducts();
+      setProducts(data);
+      setFilteredProducts(data);
+    } catch (err) {
+      setError('Error al cargar los productos.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const mockProducts = [
-      { 
-        id: 1, 
-        sku: 'PROD-001', 
-        nombre: 'Laptop HP ProBook', 
-        descripcion: 'Laptop corporativa 15 pulgadas, 16GB RAM',
-        precio_compra: 700.00, 
-        precio_venta: 850.00, 
-        stock_actual: 15, 
-        stock_minimo: 5 
-      },
-      { 
-        id: 2, 
-        sku: 'PROD-002', 
-        nombre: 'Monitor Dell 24"', 
-        descripcion: 'Monitor IPS Full HD',
-        precio_compra: 110.00, 
-        precio_venta: 150.00, 
-        stock_actual: 4, 
-        stock_minimo: 10 
-      }
-    ];
-    setProducts(mockProducts);
+    fetchProducts();
   }, []);
 
-  const filteredProducts = products.filter(product =>
-    product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    const results = products.filter(product => 
+      product.nombre.toLowerCase().includes(search.toLowerCase()) || 
+      product.sku.toLowerCase().includes(search.toLowerCase())
+    );
+    setFilteredProducts(results);
+  }, [search, products]);
+
+  const handleDelete = async (id) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este producto? Se eliminarán también sus movimientos asociados.')) {
+      try {
+        await deleteProduct(id);
+        fetchProducts(); // Recargar lista
+      } catch (err) {
+        alert('Ocurrió un error al eliminar el producto.');
+      }
+    }
+  };
+
+  const openModalForNew = () => {
+    setProductToEdit(null);
+    setIsModalOpen(true);
+  };
+
+  const openModalForEdit = (product) => {
+    setProductToEdit(product);
+    setIsModalOpen(true);
+  };
+
+  if (loading) return <div className="p-6">Cargando productos...</div>;
+  if (error) return <div className="p-6 text-red-600">{error}</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-        <div className="flex-1 w-full">
-          <input
-            type="text"
-            placeholder="Buscar por nombre o SKU..."
-            className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Gestión de Productos</h1>
         <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors whitespace-nowrap"
+          onClick={openModalForNew}
+          className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
         >
           + Nuevo Producto
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider border-b border-gray-200">
-                <th className="p-4 font-semibold">SKU</th>
-                <th className="p-4 font-semibold">Nombre</th>
-                <th className="p-4 font-semibold">Precio Compra</th>
-                <th className="p-4 font-semibold">Precio Venta</th>
-                <th className="p-4 font-semibold">Stock Actual</th>
-                <th className="p-4 font-semibold">Stock Mín.</th>
-                <th className="p-4 font-semibold text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 text-gray-700 text-sm">
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
-                  <tr key={product.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 font-mono">{product.sku}</td>
-                    <td className="p-4">
-                      <div className="font-medium text-gray-900">{product.nombre}</div>
-                      <div className="text-gray-500 text-xs truncate max-w-xs">{product.descripcion}</div>
-                    </td>
-                    <td className="p-4">${product.precio_compra.toFixed(2)}</td>
-                    <td className="p-4">${product.precio_venta.toFixed(2)}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        product.stock_actual <= product.stock_minimo ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                      }`}>
-                        {product.stock_actual}
-                      </span>
-                    </td>
-                    <td className="p-4">{product.stock_minimo}</td>
-                    <td className="p-4 text-center whitespace-nowrap">
-                      <button className="text-blue-600 hover:text-blue-800 font-medium mr-3">Editar</button>
-                      <button className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="7" className="p-8 text-center text-gray-500">
-                    No se encontraron productos.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="mb-4">
+        <input 
+          type="text" 
+          placeholder="Buscar por nombre o SKU..." 
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full md:w-1/3 border rounded p-2 shadow-sm"
+        />
       </div>
 
-      {isModalOpen && (
-        <ProductModal onClose={() => setIsModalOpen(false)} />
-      )}
+      <div className="bg-white shadow-md rounded overflow-x-auto">
+        <table className="min-w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-gray-100 border-b">
+              <th className="p-3 font-semibold text-gray-700">SKU</th>
+              <th className="p-3 font-semibold text-gray-700">Nombre</th>
+              <th className="p-3 font-semibold text-gray-700">Precio (Venta)</th>
+              <th className="p-3 font-semibold text-gray-700">Stock Actual</th>
+              <th className="p-3 font-semibold text-gray-700">Stock Mín.</th>
+              <th className="p-3 font-semibold text-gray-700 text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredProducts.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="p-4 text-center text-gray-500">No se encontraron productos.</td>
+              </tr>
+            ) : (
+              filteredProducts.map((product) => (
+                <tr key={product.id} className="border-b hover:bg-gray-50">
+                  <td className="p-3">{product.sku}</td>
+                  <td className="p-3 font-medium">{product.nombre}</td>
+                  <td className="p-3">${product.precio_venta}</td>
+                  <td className="p-3">
+                    <span className={`px-2 py-1 rounded text-sm font-medium ${product.stock_actual <= product.stock_minimo ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                      {product.stock_actual}
+                    </span>
+                  </td>
+                  <td className="p-3">{product.stock_minimo}</td>
+                  <td className="p-3 text-center space-x-3">
+                    <button onClick={() => openModalForEdit(product)} className="text-blue-600 hover:underline">Editar</button>
+                    <button onClick={() => handleDelete(product.id)} className="text-red-600 hover:underline">Eliminar</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <ProductModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        productToEdit={productToEdit} 
+        onSaveSuccess={fetchProducts} 
+      />
     </div>
   );
-};
-
-export default Products;
+}

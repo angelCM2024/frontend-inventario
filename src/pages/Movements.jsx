@@ -1,112 +1,121 @@
 import { useState, useEffect } from 'react';
+import { getMovements } from '../services/movementService';
+import MovementModal from '../components/MovementModal';
 
-const Movements = () => {
-  const [products, setProducts] = useState([]);
+export default function Movements() {
   const [movements, setMovements] = useState([]);
+  const [filteredMovements, setFilteredMovements] = useState([]);
+  const [filterType, setFilterType] = useState('TODOS');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => {
-    const mockProducts = [
-      { id: 1, nombre: 'Laptop HP ProBook', sku: 'PROD-001' },
-      { id: 2, nombre: 'Monitor Dell 24"', sku: 'PROD-002' }
-    ];
-    setProducts(mockProducts);
-
-    const mockMovements = [
-      { id: 1, producto_nombre: 'Laptop HP ProBook', tipo: 'ENTRADA', cantidad: 20, motivo: 'Compra inicial', creado_en: '2026-11-08 10:00:00' },
-      { id: 2, producto_nombre: 'Monitor Dell 24"', tipo: 'SALIDA', cantidad: 2, motivo: 'Venta mostrador', creado_en: '2026-11-08 14:30:00' }
-    ];
-    setMovements(mockMovements);
-  }, []);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Enviando movimiento a la API...");
-    e.target.reset();
+  const fetchMovements = async () => {
+    setLoading(true);
+    try {
+      const data = await getMovements();
+      setMovements(data);
+      setFilteredMovements(data);
+    } catch (err) {
+      setError('Error al cargar los movimientos.');
+    } finally {
+      setLoading(false);
+    }
   };
 
+  useEffect(() => {
+    fetchMovements();
+  }, []);
+
+  useEffect(() => {
+    if (filterType === 'TODOS') {
+      setFilteredMovements(movements);
+    } else {
+      setFilteredMovements(movements.filter(m => m.tipo === filterType));
+    }
+  }, [filterType, movements]);
+
+  if (loading) return <div className="p-6">Cargando historial de movimientos...</div>;
+  if (error) return <div className="p-6 text-red-600">{error}</div>;
+
   return (
-    <div className="space-y-6">
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Registrar Nuevo Movimiento</h3>
-        
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Producto</label>
-            <select required name="producto_id" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white">
-              <option value="">Seleccione un producto...</option>
-              {products.map(p => (
-                <option key={p.id} value={p.id}>[{p.sku}] - {p.nombre}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Movimiento</label>
-            <select required name="tipo" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white">
-              <option value="ENTRADA">Entrada (Sumar stock)</option>
-              <option value="SALIDA">Salida (Restar stock)</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
-            <input required type="number" name="cantidad" min="1" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="Ej. 10" />
-          </div>
-          <div className="md:col-span-3">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Motivo (Opcional)</label>
-            <input type="text" name="motivo" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="Ej. Compra a proveedor, Producto dañado, Venta..." />
-          </div>
-          <div className="md:col-span-1">
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
-              Registrar
-            </button>
-          </div>
-        </form>
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Historial de Movimientos</h1>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
+        >
+          + Registrar Movimiento
+        </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 bg-slate-50">
-          <h3 className="font-semibold text-gray-800">Historial de Transacciones</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-white text-slate-600 text-xs uppercase tracking-wider border-b border-gray-200">
-                <th className="p-4 font-semibold">Fecha y Hora</th>
-                <th className="p-4 font-semibold">Producto</th>
-                <th className="p-4 font-semibold">Tipo</th>
-                <th className="p-4 font-semibold">Cantidad</th>
-                <th className="p-4 font-semibold">Motivo</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 text-gray-700 text-sm">
-              {movements.length > 0 ? (
-                movements.map((mov) => (
-                  <tr key={mov.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4 text-gray-500 whitespace-nowrap">{mov.creado_en}</td>
-                    <td className="p-4 font-medium text-gray-900">{mov.producto_nombre}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold tracking-wide ${
-                        mov.tipo === 'ENTRADA' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                      }`}>
-                        {mov.tipo}
-                      </span>
-                    </td>
-                    <td className="p-4 font-semibold text-gray-900">{mov.cantidad}</td>
-                    <td className="p-4 text-gray-500">{mov.motivo || 'N/A'}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="p-8 text-center text-gray-500">
-                    No hay movimientos registrados.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="mb-4 flex space-x-2">
+        <button 
+          onClick={() => setFilterType('TODOS')}
+          className={`px-4 py-2 rounded ${filterType === 'TODOS' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+        >
+          Todos
+        </button>
+        <button 
+          onClick={() => setFilterType('ENTRADA')}
+          className={`px-4 py-2 rounded ${filterType === 'ENTRADA' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+        >
+          Entradas
+        </button>
+        <button 
+          onClick={() => setFilterType('SALIDA')}
+          className={`px-4 py-2 rounded ${filterType === 'SALIDA' ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+        >
+          Salidas
+        </button>
       </div>
+
+      <div className="bg-white shadow-md rounded overflow-x-auto">
+        <table className="min-w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-gray-100 border-b">
+              <th className="p-3 font-semibold text-gray-700">Fecha</th>
+              <th className="p-3 font-semibold text-gray-700">Producto</th>
+              <th className="p-3 font-semibold text-gray-700">Tipo</th>
+              <th className="p-3 font-semibold text-gray-700">Cantidad</th>
+              <th className="p-3 font-semibold text-gray-700">Motivo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredMovements.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="p-4 text-center text-gray-500">No hay movimientos registrados.</td>
+              </tr>
+            ) : (
+              filteredMovements.map((movement) => (
+                <tr key={movement.id} className="border-b hover:bg-gray-50">
+                  <td className="p-3">
+                    {new Date(movement.creado_en).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+                  </td>
+                  <td className="p-3 font-medium">
+                    {movement.productos?.sku} - {movement.productos?.nombre}
+                  </td>
+                  <td className="p-3">
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${movement.tipo === 'ENTRADA' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {movement.tipo}
+                    </span>
+                  </td>
+                  <td className="p-3 font-bold">{movement.cantidad}</td>
+                  <td className="p-3 text-gray-600 text-sm">{movement.motivo || '-'}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <MovementModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSaveSuccess={fetchMovements} 
+      />
     </div>
   );
-};
-
-export default Movements;
+}
