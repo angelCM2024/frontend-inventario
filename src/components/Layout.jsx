@@ -1,9 +1,16 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../supabaseClient'; // <-- Importar supabase
 
-const Layout = () => {
+const Layout = ({ session }) => { // <-- Recibir session como prop
   const location = useLocation();
   const navigate = useNavigate();
+
+  // <-- Crear la función handleLogout
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
 
   // Array de navegación con iconos SVG incorporados
   const navItems = [
@@ -67,19 +74,23 @@ const Layout = () => {
           })}
         </nav>
 
-        {/* Perfil Falso / Logout en la base del Sidebar */}
+        {/* Perfil Real / Logout en la base del Sidebar */}
         <div className="p-4 border-t border-slate-800 bg-slate-900">
           <div className="flex items-center gap-3 mb-4 px-2">
-            <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold text-sm">
-              AD
+            <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold text-sm uppercase">
+              {/* <-- Mostrar la primera letra del correo real */}
+              {session?.user?.email?.charAt(0) || 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">Administrador</p>
-              <p className="text-xs text-slate-400 truncate">admin@universidad.edu</p>
+              <p className="text-sm font-medium text-white truncate">Usuario</p>
+              {/* <-- Mostrar el correo real de Supabase */}
+              <p className="text-xs text-slate-400 truncate">
+                {session?.user?.email || 'Cargando...'}
+              </p>
             </div>
           </div>
           <button 
-            onClick={() => navigate('/login')}
+            onClick={handleLogout} // <-- Usar la nueva función aquí
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { supabase } from './supabaseClient';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
@@ -6,23 +8,40 @@ import Movements from './pages/Movements';
 import Alerts from './pages/Alerts';
 import Login from './pages/Login';
 
-// Este componente envuelve el panel. Si no hay sesión, te manda al login.
-const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('auth_token') === 'true';
-  if (!isAuthenticated) {
+const ProtectedRoute = ({ session, children }) => {
+  if (!session) {
     return <Navigate to="/login" replace />;
   }
   return children;
 };
 
 function App() {
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (loading) {
+    return <div className="h-screen flex items-center justify-center bg-slate-50 text-slate-600">Cargando sesión...</div>;
+  }
+
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={!session ? <Login /> : <Navigate to="/" replace />} />
 
-        {/* Todas las rutas del panel ahora están protegidas */}
-        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route path="/" element={<ProtectedRoute session={session}><Layout session={session} /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="productos" element={<Products />} />
           <Route path="movimientos" element={<Movements />} />
