@@ -1,5 +1,4 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabaseClient'; // <-- Importar supabase
 
 const Layout = ({ session }) => { // <-- Recibir session como prop

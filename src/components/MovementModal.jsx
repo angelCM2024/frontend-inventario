@@ -17,7 +17,7 @@ export default function MovementModal({ isOpen, onClose, onSaveSuccess }) {
 
   useEffect(() => {
     if (isOpen) {
-      setFormData(initialFormState);
+      setFormData([initialFormState]);
       setError(null);
       fetchProducts();
     }
