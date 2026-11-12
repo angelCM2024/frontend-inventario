@@ -6,22 +6,29 @@ import Movements from './pages/Movements';
 import Alerts from './pages/Alerts';
 import Login from './pages/Login';
 
+// Este componente envuelve el panel. Si no hay sesión, te manda al login.
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem('auth_token') === 'true';
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Ruta pública */}
         <Route path="/login" element={<Login />} />
 
-        {/* Rutas protegidas (envueltas por el Layout) */}
-        <Route path="/" element={<Layout />}>
+        {/* Todas las rutas del panel ahora están protegidas */}
+        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="productos" element={<Products />} />
           <Route path="movimientos" element={<Movements />} />
           <Route path="alertas" element={<Alerts />} />
         </Route>
 
-        {/* Captura de rutas no encontradas */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>

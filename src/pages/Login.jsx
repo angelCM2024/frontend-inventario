@@ -5,8 +5,9 @@ const Login = () => {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    // Aquí irá tu lógica de autenticación real en el futuro
-    navigate('/'); // Redirige al panel principal
+    // Guardamos una "sesión" falsa en el navegador
+    localStorage.setItem('auth_token', 'true'); 
+    navigate('/'); 
   };
 
   return (
